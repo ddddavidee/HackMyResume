@@ -6,6 +6,28 @@ module.exports = function (grunt) {
 
     pkg: grunt.file.readJSON('package.json'),
 
+    copy: {
+      main: {
+        expand: true,
+        cwd: 'src',
+        src: ['**/*','!**/*.coffee'],
+        dest: 'dist/',
+      }
+    },
+
+    coffee: {
+      main: {
+        options: {
+          sourceMap: true
+        },
+        expand: true,
+        cwd: 'src',
+        src: ['**/*.coffee'],
+        dest: 'dist/',
+        ext: '.js'
+      }
+    },
+
     simplemocha: {
       options: {
         globals: ['expect', 'should'],
@@ -14,10 +36,23 @@ module.exports = function (grunt) {
         ui: 'bdd',
         reporter: 'spec'
       },
-      all: { src: ['tests/*.js'] }
+      all: { src: ['test/*.js'] }
     },
 
-    clean: ['tests/sandbox'],
+    jsdoc : {
+      dist : {
+        src: ['src/**/*.js'],
+        options: {
+          private: true,
+          destination: 'doc'
+        }
+      }
+    },
+
+    clean: {
+      test: ['test/sandbox'],
+      dist: ['dist']
+    },
 
     yuidoc: {
       compile: {
@@ -27,7 +62,6 @@ module.exports = function (grunt) {
         url: '<%= pkg.homepage %>',
         options: {
           paths: 'src/',
-          //themedir: 'path/to/custom/theme/',
           outdir: 'docs/'
         }
       }
@@ -36,24 +70,42 @@ module.exports = function (grunt) {
     jshint: {
       options: {
         laxcomma: true,
-        expr: true
+        expr: true,
+        eqnull: true
       },
-      all: ['Gruntfile.js', 'src/**/*.js', 'test/**/*.js']
+      all: ['Gruntfile.js', 'dist/cli/**/*.js', 'test/*.js']
     }
 
   };
 
   grunt.initConfig( opts );
-
+  grunt.loadNpmTasks('grunt-contrib-coffee');
+  grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-simple-mocha');
   grunt.loadNpmTasks('grunt-contrib-yuidoc');
+  grunt.loadNpmTasks('grunt-jsdoc');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-clean');
 
-  grunt.registerTask('test', 'Test the HackMyResume library.',
-    function( config ) { grunt.task.run( ['clean','simplemocha:all'] ); });
-  grunt.registerTask('document', 'Generate HackMyResume library documentation.',
-    function( config ) { grunt.task.run( ['yuidoc'] ); });
-  grunt.registerTask('default', [ 'jshint', 'test', 'yuidoc' ]);
+  // Use 'grunt test' for local testing
+  grunt.registerTask('test', 'Test the HackMyResume application.',
+    function( config ) {
+      grunt.task.run(['clean:test','build','jshint','simplemocha:all']);
+    });
+
+  // Use 'grunt document' to build docs
+  grunt.registerTask('document', 'Generate HackMyResume documentation.',
+    function( config ) {
+      grunt.task.run( ['jsdoc'] );
+    });
+
+  // Use 'grunt build' to build HMR
+  grunt.registerTask('build', 'Build the HackMyResume application.',
+    function( config ) {
+      grunt.task.run( ['clean:dist','copy','coffee'] );
+    });
+
+  // Default task does everything
+  grunt.registerTask('default', [ 'test', 'document' ]);
 
 };
